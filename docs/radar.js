@@ -43,7 +43,8 @@ function radar_visualization(config) {
   const quadrants = [
     { radial_min: 0, radial_max: 0.5, factor_x: 1, factor_y: 1 },
     { radial_min: 0.5, radial_max: 1, factor_x: -1, factor_y: 1 },
-    { radial_min: -1, radial_max: -0.5, factor_x: -1, factor_y: -1 },
+    { radial_min: -1, radial_max: -0.25, factor_x: -1, factor_y: -1 },
+	{ radial_min: -0.25, radial_max: -0.5, factor_x: -1, factor_y: -1 },
     { radial_min: -0.5, radial_max: 0, factor_x: 1, factor_y: -1 }
   ];
 
@@ -204,13 +205,55 @@ function radar_visualization(config) {
   }
 
   var grid = radar.append("g");
-
-  // draw grid lines
+  
+  // Draw rings in reverse sequence to keep the borders visible
+  for (var i = rings.length-1; i >= 0; i--) {
+    grid.append("circle")
+      .attr("cx", 0)
+      .attr("cy", 0)
+      .attr("r", rings[i].radius)
+      .style("fill", "rgb(242, 242, 242)")
+      .style("stroke", config.colors.grid)
+      .style("stroke-width", 1);
+  }
+  
+  // draw titles
+  for (var i = 0; i < rings.length; i++) {
+    
+	if (config.print_layout) {
+      grid.append("text")
+        .text(config.rings[i].name)
+        .attr("y", -rings[i].radius + 62)
+        .attr("text-anchor", "middle")
+        .style("fill", "#e5e5e5")
+        .style("font-family", "Arial, Helvetica")
+        .style("font-size", 42)
+        .style("font-weight", "bold")
+        .style("pointer-events", "none")
+        .style("user-select", "none");
+    }
+  }
+  
+  // draw grid lines (revised)
+  for (var i = 0; i < quadrants.length; i++) {
+	var r  = rings[rings.length-1].radius
+	var p = polar(r,quadrants[i].radial_min)
+	var x2 = r * Math.sin(quadrants[i].radial_min)
+	var y2 = r * Math.cos(quadrants[i].radial_min)
+	grid.append("line")
+	  .attr("x1", 0).attr("y1", 0)
+      .attr("x2", p.x).attr("y2", p.y)
+      .style("stroke", config.colors.grid)
+      .style("stroke-width", 2);
+  }
+  
+  
   grid.append("line")
     .attr("x1", 0).attr("y1", -400)
     .attr("x2", 0).attr("y2", 400)
     .style("stroke", config.colors.grid)
     .style("stroke-width", 1);
+	
   grid.append("line")
     .attr("x1", -400).attr("y1", 0)
     .attr("x2", 400).attr("y2", 0)
@@ -231,28 +274,7 @@ function radar_visualization(config) {
   filter.append("feComposite")
     .attr("in", "SourceGraphic");
 
-  // draw rings
-  for (var i = 0; i < rings.length; i++) {
-    grid.append("circle")
-      .attr("cx", 0)
-      .attr("cy", 0)
-      .attr("r", rings[i].radius)
-      .style("fill", "none")
-      .style("stroke", config.colors.grid)
-      .style("stroke-width", 1);
-    if (config.print_layout) {
-      grid.append("text")
-        .text(config.rings[i].name)
-        .attr("y", -rings[i].radius + 62)
-        .attr("text-anchor", "middle")
-        .style("fill", "#e5e5e5")
-        .style("font-family", "Arial, Helvetica")
-        .style("font-size", 42)
-        .style("font-weight", "bold")
-        .style("pointer-events", "none")
-        .style("user-select", "none");
-    }
-  }
+
 
   function legend_transform(quadrant, ring, index=null) {
     var dx = ring < 2 ? 0 : 120;
@@ -269,6 +291,8 @@ function radar_visualization(config) {
   // draw title and legend (only in print layout)
   if (config.print_layout) {
 
+    radar.append("text")
+  
     // title
     radar.append("text")
       .attr("transform", translate(title_offset.x, title_offset.y))
